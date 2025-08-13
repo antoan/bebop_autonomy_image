@@ -27,7 +27,8 @@ sudo docker run -it \
   -e ROS_HOSTNAME=localhost \
   -e ROS_IP=127.0.0.1 \
   --name bebop \
-  my/bebop:bionic-rosenv
+  my/bebop:bionic-rosenv \
+  tmux
 
 # Switch back to the previous context
 echo "Switching back to '$prev_ctx' docker context..."

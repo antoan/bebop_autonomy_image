@@ -8,6 +8,9 @@ RUN touch /root/.bashrc && \
     echo '[ -f /root/bebop_ws/devel/setup.bash ] && source /root/bebop_ws/devel/setup.bash' >> /root/.bashrc && \
     echo '[ -f ~/.bashrc ] && . ~/.bashrc' >> /root/.bash_profile
 
+# Install tmux
+RUN apt-get update && apt-get install -y tmux
+
 # Default ROS env (can be overridden at `docker run -e`)
 ENV ROS_MASTER_URI=http://localhost:11311 \
     ROS_HOSTNAME=localhost \
