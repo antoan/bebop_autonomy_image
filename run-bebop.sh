@@ -28,7 +28,20 @@ sudo docker run -it \
   -e ROS_IP=127.0.0.1 \
   --name bebop \
   my/bebop:bionic-rosenv \
-  tmux
+  bash -c "tmux new-session -s bebop -d \; \
+    split-window -h -p 50 \; \
+    select-pane -t 0 \; \
+    split-window -v -p 66 \; \
+    split-window -v -p 50 \; \
+    select-pane -t 1 \; \
+    split-window -v -p 50 \; \
+    send-keys -t 0 'roscore' \; \
+    send-keys -t 1 'roslaunch bebop_driver bebop_node.launch' \; \
+    send-keys -t 2 'set_bebop_params.sh' \; \
+    send-keys -t 3 'rostopic pub -1 /bebop/takeoff std_msgs/Empty \"{}\"' \; \
+    send-keys -t 4 'rostopic pub --once /bebop/land std_msgs/Empty' \; \
+    select-pane -t 0 \; \
+    attach"
 
 # Switch back to the previous context
 echo "Switching back to '$prev_ctx' docker context..."

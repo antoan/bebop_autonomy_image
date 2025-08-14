@@ -11,6 +11,10 @@ RUN touch /root/.bashrc && \
 # Install tmux
 RUN apt-get update && apt-get install -y tmux
 
+# Copy and set permissions for the parameter script
+COPY set_bebop_params.sh /usr/local/bin/set_bebop_params.sh
+RUN chmod +x /usr/local/bin/set_bebop_params.sh
+
 # Default ROS env (can be overridden at `docker run -e`)
 ENV ROS_MASTER_URI=http://localhost:11311 \
     ROS_HOSTNAME=localhost \
