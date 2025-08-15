@@ -1,0 +1,65 @@
+# Base image
+FROM nvidia/cuda:11.3.1-devel-ubuntu18.04
+
+# Install OpenGL and other graphics libraries to replicate cudagl
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libgl1-mesa-dri \
+    mesa-utils \
+    libqt4-opengl-dev \
+    libgtkgl2.0-dev \
+    libgtkglext1-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set non-interactive frontend
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install essential packages and dependencies
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y \
+    build-essential \
+    cmake \
+    pkg-config \
+    python2.7-dev \
+    python3-dev \
+    python-numpy \
+    python3-numpy \
+    lsb-release \
+    wget \
+    curl \
+    git \
+    vim && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install ROS Melodic
+RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && \
+    curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add - && \
+    apt-get update && \
+    apt-get install -y ros-melodic-desktop-full && \
+    apt-get install -y python-rosdep python-rosinstall python-rosinstall-generator python-wstool build-essential python-catkin-tools && \
+    rosdep init && \
+    rosdep update
+
+# Setup ROS environment
+ENV ROS_MASTER_URI=http://localhost:11311
+ENV ROS_HOSTNAME=localhost
+
+# Setup bebop_autonomy workspace
+RUN mkdir -p /root/bebop_ws/src && \
+    cd /root/bebop_ws/src && \
+    git clone https://github.com/antoan/bebop_autonomy.git && \
+    cd /root/bebop_ws && \
+    rosdep install --from-paths src --ignore-src -r -y && \
+    apt-get install -y ros-melodic-parrot-arsdk && \
+    /bin/bash -c "source /opt/ros/melodic/setup.bash && catkin build"
+
+# Source ROS and workspace setup
+RUN echo "source /opt/ros/melodic/setup.bash" >> /root/.bashrc && \
+    echo "source /root/bebop_ws/devel/setup.bash" >> /root/.bashrc
+
+# Set working directory
+WORKDIR /root/bebop_ws
+
+
+# Default command
+CMD ["bash"]
