@@ -4,9 +4,11 @@ This project provides a reproducible Docker environment for controlling a Parrot
 
 ## Overview
 
-The system is designed to provide a simple, reliable way to launch the Bebop drone's ROS driver in a containerized environment. It consists of two main components:
+The system is designed to provide a simple, reliable way to launch the Bebop drone's ROS driver in a containerized environment. It also includes the `rosbridge_server` to allow for communication between ROS 1 and ROS 2 systems. This is primarily intended to bridge a ROS 2 `cmd_vel` publisher on the host machine to the ROS 1 `cmd_vel` subscriber in the container.
 
-1.  **`Dockerfile.new`**: A file that defines how to build a custom Docker image containing all the necessary software (ROS, the Bebop driver, and all dependencies).
+The system consists of two main components:
+
+1.  **`Dockerfile.new`**: A file that defines how to build a custom Docker image containing all the necessary software (ROS, the Bebop driver, `rosbridge_server`, and all dependencies).
 2.  **`launch.sh`**: A script on your host machine that automates the process of building the image (if needed) and running the container with a user-friendly `tmux` interface.
 
 ### 1. The Dockerfile (`Dockerfile.new`)
@@ -16,6 +18,7 @@ This file is the blueprint for our environment. When built, it creates a self-co
 *   **Base System:** Starts from an official NVIDIA CUDA image with Ubuntu 18.04, providing GPU support.
 *   **ROS Melodic:** Installs the `desktop-full` version of ROS Melodic.
 *   **Bebop Autonomy Package:** Clones your fork of the `bebop_autonomy` repository from GitHub. This is where you have customized the flight parameters in the `defaults.yaml` file.
+*   **rosbridge_server:** Installs the `ros-melodic-rosbridge-server` package to allow for ROS 1 to ROS 2 communication.
 *   **Dependencies:** Installs all necessary system libraries, including the `parrot_arsdk` which is required for the driver to communicate with the drone.
 *   **Workspace Build:** Compiles the `bebop_autonomy` ROS package using `catkin build`.
 *   **Environment Configuration:** Modifies the `.bashrc` file inside the image to automatically:
@@ -33,11 +36,13 @@ This script is the user-friendly entry point for running the system. When you ex
 4.  **Launches Container:** It runs the Docker container with all the necessary flags:
     *   `--gpus all`: Provides access to the NVIDIA GPU.
     *   `--net=host`: Allows the container to share the host's network, which is essential for ROS communication.
+    *   `-p 9090:9090`: Exposes the `rosbridge_server` websocket port to the host machine.
     *   `-e DISPLAY` and `-v /tmp/.X11-unix...`: Forwards your display so you can run GUI applications from the container.
-5.  **Starts `tmux` Session:** Instead of just giving you a single shell, it starts a `tmux` session with a pre-configured 3-pane layout:
-    *   **Top Pane:** Automatically runs `roslaunch bebop_driver bebop_node.launch`. This command starts the ROS master (`roscore`) and the main driver node.
+5.  **Starts `tmux` Session:** Instead of just giving you a single shell, it starts a `tmux` session with a pre-configured 4-pane layout:
+    *   **Top Pane:** Pre-types the `roslaunch bebop_driver bebop_node.launch` command for you.
     *   **Bottom-Left Pane:** Pre-types the `takeoff` command for you.
     *   **Bottom-Right Pane:** Pre-types the `land` command for you.
+    *   **Far-Right Pane:** Automatically runs `roslaunch rosbridge_server rosbridge_websocket.launch`.
 
 ### Usage
 
@@ -49,4 +54,4 @@ This script is the user-friendly entry point for running the system. When you ex
     The first time you run this, it will build the Docker image, which will take several minutes. Subsequent launches will be much faster.
 
 2.  **Inside the Container:**
-    You will be placed in a 3-pane `tmux` session. The top pane will be running the driver. You can switch to the bottom panes (`Ctrl-b` + `↓`) to run the takeoff and land commands.
+    You will be placed in a 4-pane `tmux` session. The far-right pane will be running the `rosbridge_server`. You can switch to the other panes to run the driver, takeoff, and land commands. The `main.launch` file, which is used to launch the `rosbridge_server`, is located in the `bebop_driver` package.
