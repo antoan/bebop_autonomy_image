@@ -28,7 +28,8 @@ RUN apt-get update && apt-get upgrade -y && \
     wget \
     curl \
     git \
-    vim && \
+    vim \
+    tmux && \
     rm -rf /var/lib/apt/lists/*
 
 # Install ROS Melodic
@@ -55,7 +56,8 @@ RUN mkdir -p /root/bebop_ws/src && \
 
 # Source ROS and workspace setup
 RUN echo "source /opt/ros/melodic/setup.bash" >> /root/.bashrc && \
-    echo "source /root/bebop_ws/devel/setup.bash" >> /root/.bashrc
+    echo "source /root/bebop_ws/devel/setup.bash" >> /root/.bashrc && \
+    echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/ros/melodic/lib/parrot_arsdk" >> /root/.bashrc
 
 # Set working directory
 WORKDIR /root/bebop_ws

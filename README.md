@@ -4,63 +4,49 @@ This project provides a reproducible Docker environment for controlling a Parrot
 
 ## Overview
 
-The setup consists of three main components:
+The system is designed to provide a simple, reliable way to launch the Bebop drone's ROS driver in a containerized environment. It consists of two main components:
 
-1.  **`Dockerfile`**: Defines and builds the custom Docker image.
-2.  **`set_bebop_params.sh`**: A script inside the container to configure the drone's flight parameters.
-3.  **`run-bebop.sh`**: A host-side script that launches the Docker container and sets up the `tmux` development environment.
+1.  **`Dockerfile.new`**: A file that defines how to build a custom Docker image containing all the necessary software (ROS, the Bebop driver, and all dependencies).
+2.  **`launch.sh`**: A script on your host machine that automates the process of building the image (if needed) and running the container with a user-friendly `tmux` interface.
 
-An alias `bebop` is also added to your `~/.zshrc` to make launching the environment easy.
+### 1. The Dockerfile (`Dockerfile.new`)
 
-### How It Works
+This file is the blueprint for our environment. When built, it creates a self-contained image that includes:
 
-1.  The **`Dockerfile`** starts from a base image (`wdragon75/bebop_cudagl:bionic-1.0.0`) that contains ROS Melodic and NVIDIA GPU support. It then:
-    *   Installs `tmux` for terminal multiplexing.
-    *   Copies the `set_bebop_params.sh` script into the image at `/usr/local/bin/` and makes it executable.
-    *   Sets up the necessary ROS environment variables and sources the `bebop_ws` workspace.
+*   **Base System:** Starts from an official NVIDIA CUDA image with Ubuntu 18.04, providing GPU support.
+*   **ROS Melodic:** Installs the `desktop-full` version of ROS Melodic.
+*   **Bebop Autonomy Package:** Clones your fork of the `bebop_autonomy` repository from GitHub. This is where you have customized the flight parameters in the `defaults.yaml` file.
+*   **Dependencies:** Installs all necessary system libraries, including the `parrot_arsdk` which is required for the driver to communicate with the drone.
+*   **Workspace Build:** Compiles the `bebop_autonomy` ROS package using `catkin build`.
+*   **Environment Configuration:** Modifies the `.bashrc` file inside the image to automatically:
+    *   Source the main ROS Melodic setup script.
+    *   Source the setup script for our compiled `bebop_ws` workspace.
+    *   **Crucially, it sets the `LD_LIBRARY_PATH`** to include the Parrot ARSDK libraries, which fixes the `libarcommands.so` error.
 
-2.  The **`set_bebop_params.sh`** script is designed to be run inside the container. It:
-    *   Sources the ROS environment to ensure it has access to ROS commands.
-    *   Waits for the `/bebop/bebop_node` to become available.
-    *   Uses `dynamic_reconfigure` to set the drone's maximum altitude, maximum distance, and maximum vertical speed.
+### 2. The Launch Script (`launch.sh`)
 
-3.  The **`run-bebop.sh`** script orchestrates the entire launch process from your host machine. It:
-    *   Switches the Docker context to `default` to use the native Docker engine (required for stable GPU access).
-    *   Ensures the container can connect to your host's X server for GUI applications.
-    *   Removes any previously running container named `bebop` to avoid conflicts.
-    *   Runs the custom Docker image (`my/bebop:bionic-rosenv`).
-    *   Executes a series of `tmux` commands to create a 5-pane layout inside the container.
-    *   Switches the Docker context back to what it was before the script was run.
+This script is the user-friendly entry point for running the system. When you execute `./launch.sh`, it performs the following steps:
 
-### The `tmux` Workflow
-
-When you run the `bebop` alias, you are dropped into a `tmux` session with five panes, each with a command pre-typed and ready to be executed by pressing `Enter`.
-
-The layout is as follows:
-
-*   **Pane 0 (Top-Left):** `roscore`
-    *   **Action:** Press `Enter` here first to start the ROS master.
-*   **Pane 1 (Top-Right):** `roslaunch bebop_driver bebop_node.launch`
-    *   **Action:** After `roscore` is running, switch to this pane (`Ctrl-b` + `→`) and press `Enter` to start the drone driver.
-*   **Pane 2 (Middle-Left):** `set_bebop_params.sh`
-    *   **Action:** After the driver is running, switch to this pane (`Ctrl-b` + `↓` from pane 0) and press `Enter` to set the flight parameters.
-*   **Pane 3 (Bottom-Left):** `rostopic pub -1 /bebop/takeoff std_msgs/Empty "{}"`
-    *   **Action:** Use this pane to send the takeoff command.
-*   **Pane 4 (Bottom-Right):** `rostopic pub --once /bebop/land std_msgs/Empty`
-    *   **Action:** Use this pane to send the land command.
+1.  **Checks for Image:** It first checks if the `my/bebop:bionic-rosenv` Docker image has already been built.
+2.  **Builds Image (if needed):** If the image is not found, it automatically runs `docker build` using `Dockerfile.new` to create it. This ensures you are always running an up-to-date version of your environment after you make changes.
+3.  **Sets up Docker:** It ensures it's using the native Docker engine (not Docker Desktop) for better performance and hardware access.
+4.  **Launches Container:** It runs the Docker container with all the necessary flags:
+    *   `--gpus all`: Provides access to the NVIDIA GPU.
+    *   `--net=host`: Allows the container to share the host's network, which is essential for ROS communication.
+    *   `-e DISPLAY` and `-v /tmp/.X11-unix...`: Forwards your display so you can run GUI applications from the container.
+5.  **Starts `tmux` Session:** Instead of just giving you a single shell, it starts a `tmux` session with a pre-configured 3-pane layout:
+    *   **Top Pane:** Automatically runs `roslaunch bebop_driver bebop_node.launch`. This command starts the ROS master (`roscore`) and the main driver node.
+    *   **Bottom-Left Pane:** Pre-types the `takeoff` command for you.
+    *   **Bottom-Right Pane:** Pre-types the `land` command for you.
 
 ### Usage
 
-1.  **Build the Docker Image:**
+1.  **Build and Launch:**
+    Run the launch script from your terminal:
     ```bash
-    sudo docker build -t my/bebop:bionic-rosenv .
+    ./launch.sh
     ```
+    The first time you run this, it will build the Docker image, which will take several minutes. Subsequent launches will be much faster.
 
-2.  **Launch the Environment:**
-    Open a new terminal and run:
-    ```bash
-    bebop
-    ```
-    (If the alias is not found, you may need to run `source ~/.zshrc` first).
-
-3.  **Follow the `tmux` workflow** described above to start the components in the correct order.
+2.  **Inside the Container:**
+    You will be placed in a 3-pane `tmux` session. The top pane will be running the driver. You can switch to the bottom panes (`Ctrl-b` + `↓`) to run the takeoff and land commands.
