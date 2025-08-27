@@ -23,6 +23,7 @@ echo "Starting bebop container..."
 sudo docker run -it \
   --gpus all \
   --net host \
+  -p 9090:9090 \
   --name bebop \
   -e DISPLAY=$DISPLAY \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
@@ -34,6 +35,8 @@ sudo docker run -it \
     send-keys -t 1 'rostopic pub -1 /bebop/takeoff std_msgs/Empty "{}"' \; \
     split-window -v \; \
     send-keys -t 2 'rostopic pub --once /bebop/land std_msgs/Empty' \; \
+    split-window -h \; \
+    send-keys -t 3 'roslaunch rosbridge_server rosbridge_websocket.launch' C-m \; \
     select-pane -t 0 \; \
     attach
 
