@@ -29,6 +29,14 @@ sudo docker rm -f bebop &>/dev/null || true
 
 echo "Starting bebop container..."
 # Run the container with all parameters
+# Detect the wireless interface
+WIFI_IFACE=$(nmcli device status | grep wifi | awk '{print $1}')
+if [ -z "$WIFI_IFACE" ]; then
+    echo "Could not detect a Wi-Fi interface. Please ensure you are connected to the Bebop's network."
+    exit 1
+fi
+echo "Using Wi-Fi interface: $WIFI_IFACE"
+
 sudo docker run -it \
   --gpus all \
   --net host \
@@ -39,7 +47,7 @@ sudo docker run -it \
   -v ~/docker_share:/root/share:rw \
   my/bebop:bionic-rosenv \
   tmux new-session -s bebop -d \; \
-    send-keys -t 0 'roslaunch bebop_driver bebop_node.launch' \; \
+    send-keys -t 0 'roslaunch bebop_driver bebop_node.launch iface:=$WIFI_IFACE' \; \
     split-window -v \; \
     send-keys -t 1 'rostopic pub -1 /bebop/takeoff std_msgs/Empty "{}"' \; \
     split-window -v \; \
