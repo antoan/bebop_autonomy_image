@@ -10,8 +10,16 @@ The system consists of two main components:
 
 1.  **`Dockerfile.new`**: A file that defines how to build a custom Docker image containing all the necessary software (ROS, the Bebop driver, `rosbridge_server`, and all dependencies).
 2.  **`launch.sh`**: A script on your host machine that automates the process of building the image (if needed) and running the container with a user-friendly `tmux` interface.
-
+### Project Structure: Overriding Launch Files
+ 
+This project uses a specific structure to manage custom configurations for the `bebop_autonomy` package without modifying the original source code. The `main.launch` file is sourced from an adjacent ROS workspace located at `../bebop_autonomy`.
+ 
+- **`Dockerfile.new`:** During the Docker build process, the `main.launch` file from `../bebop_autonomy/bebop_driver/launch/` is copied into the container, overwriting the default file from the cloned repository.
+ 
+This allows you to add or modify nodes (like the `web_video_server`) in a central location without altering this project's repository.
+ 
 ### 1. The Dockerfile (`Dockerfile.new`)
+
 
 This file is the blueprint for our environment. When built, it creates a self-contained image that includes:
 
@@ -52,6 +60,11 @@ This script is the user-friendly entry point for running the system. When you ex
     ./launch.sh
     ```
     The first time you run this, it will build the Docker image, which will take several minutes. Subsequent launches will be much faster.
+
+    To force a rebuild of the image without using the Docker cache, you can pass the `--no-cache` flag:
+    ```bash
+    ./launch.sh --no-cache
+    ```
 
 2.  **Inside the Container:**
     You will be placed in a 4-pane `tmux` session. The far-right pane will be running the `rosbridge_server`. You can switch to the other panes to run the driver, takeoff, and land commands. The `main.launch` file, which is used to launch the `rosbridge_server`, is located in the `bebop_driver` package.
