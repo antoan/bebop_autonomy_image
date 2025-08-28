@@ -1,0 +1,24 @@
+# Project Configuration and Architectural Rules
+
+## 1. System Architecture
+
+- **Host System:** The primary development and runtime environment is Kubuntu 24.04 running ROS 2 Jazzy.
+- **Containerized ROS 1:** The Bebop drone driver (`bebop_autonomy`) runs within a Docker container based on Ubuntu 18.04 and ROS 1 Melodic. The container environment is defined in `Dockerfile.new`.
+- **Networking:** The ROS 1 container MUST be run with `--net=host` to ensure seamless network communication (e.g., for MJPEG streams) between the container and the host system.
+
+## 2. ROS Bridge Implementation
+
+- **Problem:** Direct `ros1_bridge` is not supported or feasible in this environment due to OS and ROS version incompatibilities.
+- **Solution:** An MJPEG-based bridge is the standard method for transferring image data from the ROS 1 container to the ROS 2 host.
+    - **ROS 1 Side:** The `web_video_server` package is used inside the container to stream any ROS 1 image topic as an MJPEG feed over HTTP on port `8088`. This is launched via `bebop_driver/launch/main.launch`.
+    - **ROS 2 Side:** A Python script (`mjpeg_to_ros2_compressed.py`) runs on the host to consume the MJPEG stream and republish it as a `sensor_msgs/CompressedImage` topic. This is the preferred, most efficient method.
+
+## 3. Development Workflow
+
+- **Container Builds:** Any changes to the ROS 1 environment, including dependency additions, must be made in `Dockerfile.new`. The resulting image should be tagged (e.g., `bebop_ros1_image`).
+- **ROS 1 Nodes:** ROS 1 nodes within the container are managed via launch files. The `main.launch` file is sourced from an adjacent workspace (`../bebop_autonomy`) to override the default launch file from the original package. The `COPY` command in `Dockerfile.new` handles this override.
+- **ROS 2 Nodes:** ROS 2 nodes for bridging or host-side processing should be created as standalone Python scripts or ROS 2 packages on the host machine.
+
+## 4. Naming Conventions
+
+- **Bridged Topics:** To avoid confusion, ROS 2 topics that are bridged from ROS 1 should be remapped to a distinct namespace. For example, the original `/bebop/image_raw` is bridged to `/bebop2/image/compressed`.
