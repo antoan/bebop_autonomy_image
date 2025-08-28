@@ -30,7 +30,7 @@ sudo docker rm -f bebop &>/dev/null || true
 echo "Starting bebop container..."
 # Run the container with all parameters
 # Detect the wireless interface
-WIFI_IFACE=$(nmcli device status | grep wifi | awk '{print $1}')
+WIFI_IFACE=$(nmcli device status | grep wifi | awk '{print $1}' | head -n 1)
 if [ -z "$WIFI_IFACE" ]; then
     echo "Could not detect a Wi-Fi interface. Please ensure you are connected to the Bebop's network."
     exit 1
