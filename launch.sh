@@ -37,13 +37,30 @@ if [ -z "$WIFI_IFACE" ]; then
 fi
 echo "Using Wi-Fi interface: $WIFI_IFACE"
 
+# Get the IP address of the Wi-Fi interface
+WIFI_IP=$(ip -o -f inet addr show $WIFI_IFACE | awk '{print $4}' | cut -d'/' -f1)
+if [ -z "$WIFI_IP" ]; then
+    echo "Could not detect an IP address for $WIFI_IFACE."
+    exit 1
+fi
+echo "Using Wi-Fi IP: $WIFI_IP"
+
+# Disable Wi-Fi power management to prevent packet loss
+echo "Disabling Wi-Fi Power Management on $WIFI_IFACE..."
+sudo iwconfig "$WIFI_IFACE" power off
+
+# Ensure power management is re-enabled on exit
+trap 'echo "Re-enabling Wi-Fi Power Management on $WIFI_IFACE..."; sudo iwconfig "$WIFI_IFACE" power on' EXIT
+
 sudo docker run -it \
   --gpus all \
   --net host \
   --privileged \
+  --hostname bebop \
   -p 9090:9090 \
   --name bebop \
   -e DISPLAY=$DISPLAY \
+  -e ROS_IP=$WIFI_IP \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   -v ~/docker_share:/root/share:rw \
   my/bebop:bionic-rosenv \
@@ -54,7 +71,7 @@ sudo docker run -it \
     split-window -v \; \
     send-keys -t 2 'rostopic pub --once /bebop/land std_msgs/Empty' \; \
     split-window -h \; \
-    send-keys -t 3 'roslaunch bebop_driver main.launch' \; \
+    send-keys -t 3 'roslaunch bebop_driver main.launch' C-m \; \
     select-pane -t 0 \; \
     attach
 

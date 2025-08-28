@@ -66,5 +66,18 @@ This script is the user-friendly entry point for running the system. When you ex
     ./launch.sh --no-cache
     ```
 
+### Firewall Configuration
+
+If you are experiencing connection timeouts, you may need to add firewall rules to allow the drone to communicate with the ROS driver. Run the following commands on your host machine:
+
+```bash
+# Bebop AP is 192.168.42.0/24; adjust if yours differs
+sudo ufw allow proto udp from 192.168.42.0/24 to any port 43210 comment 'Bebop d2c'
+sudo ufw allow proto udp from 192.168.42.0/24 to any port 55004:55005 comment 'Bebop ARSDK stream/control'
+sudo ufw allow proto tcp from 192.168.42.0/24 to any port 44444 comment 'Bebop discovery'
+sudo ufw reload
+sudo ufw status numbered
+```
+
 2.  **Inside the Container:**
     You will be placed in a 4-pane `tmux` session. The far-right pane will be running the `rosbridge_server`. You can switch to the other panes to run the driver, takeoff, and land commands. The `main.launch` file, which is used to launch the `rosbridge_server`, is located in the `bebop_driver` package.
