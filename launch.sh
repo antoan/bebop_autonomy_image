@@ -45,7 +45,7 @@ sudo docker run -it \
     split-window -v \; \
     send-keys -t 2 'rostopic pub --once /bebop/land std_msgs/Empty' \; \
     split-window -h \; \
-    send-keys -t 3 'roslaunch rosbridge_server rosbridge_websocket.launch' C-m \; \
+    send-keys -t 3 'roslaunch bebop_driver main.launch' C-m \; \
     select-pane -t 0 \; \
     attach
 
