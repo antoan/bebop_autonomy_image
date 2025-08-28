@@ -48,7 +48,7 @@ sudo docker run -it \
   -v ~/docker_share:/root/share:rw \
   my/bebop:bionic-rosenv \
   tmux new-session -s bebop -d \; \
-    send-keys -t 0 'roslaunch bebop_driver bebop_node.launch iface:=$WIFI_IFACE' \; \
+    send-keys -t 0 'roslaunch bebop_driver bebop_node.launch iface:=$WIFI_IFACE bebop_ip:=192.168.42.1' \; \
     split-window -v \; \
     send-keys -t 1 'rostopic pub -1 /bebop/takeoff std_msgs/Empty "{}"' \; \
     split-window -v \; \
