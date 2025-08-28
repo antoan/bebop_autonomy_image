@@ -48,11 +48,11 @@ ENV ROS_HOSTNAME=localhost
 # Setup bebop_autonomy workspace
 RUN mkdir -p /root/bebop_ws/src && \
     cd /root/bebop_ws/src && \
-    git clone https://github.com/antoan/bebop_autonomy.git
+    git clone https://github.com/antoan/bebop_autonomy.git || (cd bebop_autonomy && git pull --ff-only)
 COPY bebop_autonomy/bebop_driver/launch/main.launch /root/bebop_ws/src/bebop_autonomy/bebop_driver/launch/
 RUN cd /root/bebop_ws && \
     rosdep install --from-paths src --ignore-src -r -y && \
-    apt-get install -y ros-melodic-parrot-arsdk ros-melodic-rosbridge-server && \
+    apt-get install -y ros-melodic-parrot-arsdk ros-melodic-rosbridge-server ros-melodic-web-video-server && \
     /bin/bash -c "source /opt/ros/melodic/setup.bash && catkin build"
 
 # Source ROS and workspace setup
