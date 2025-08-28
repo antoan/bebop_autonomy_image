@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 set -e
 
+# Handle --no-cache argument
+BUILD_ARGS=""
+# Define the build context and Dockerfile path
+BUILD_CONTEXT=".."
+DOCKERFILE_PATH="bebop_autonomy_image/Dockerfile.new"
+
+if [ "$1" == "--no-cache" ]; then
+  echo "Force rebuilding the Docker image with --no-cache..."
+  (cd "$BUILD_CONTEXT" && sudo docker build --no-cache -t my/bebop:bionic-rosenv -f "$DOCKERFILE_PATH" .)
 # Build the new Docker image if it doesn't exist
-if [[ "$(sudo docker images -q my/bebop:bionic-rosenv 2> /dev/null)" == "" ]]; then
+elif [[ "$(sudo docker images -q my/bebop:bionic-rosenv 2> /dev/null)" == "" ]]; then
   echo "Building new Docker image..."
-  sudo docker build -t my/bebop:bionic-rosenv -f Dockerfile.new .
+  (cd "$BUILD_CONTEXT" && sudo docker build -t my/bebop:bionic-rosenv -f "$DOCKERFILE_PATH" .)
 fi
 
 # Switch to the host engine context
